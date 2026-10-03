@@ -1,0 +1,47 @@
+# FlyRank Internship Backend Track Capstone Configuration
+# Usage Metering & Billing Engine
+
+run: npm run dev
+test: npm test
+seed: npm run seed
+base_url: http://localhost:3000
+
+endpoints:
+  - name: Health Check
+    method: GET
+    path: /health
+    description: Service health status
+
+  - name: Get Plans
+    method: GET
+    path: /api/v1/plans
+    description: List available subscription plans
+
+  - name: Generate (Billable)
+    method: POST
+    path: /api/v1/generate
+    headers:
+      X-Tenant-ID: required
+      Idempotency-Key: required
+    description: Simulate AI generation with usage metering
+
+  - name: Get Usage
+    method: GET
+    path: /api/v1/usage
+    headers:
+      X-Tenant-ID: required
+    description: Get current usage for billing period
+
+  - name: Create Checkout Session
+    method: POST
+    path: /api/v1/billing/checkout
+    headers:
+      X-Tenant-ID: required
+    description: Create Stripe checkout session for upgrade
+
+  - name: Stripe Webhook
+    method: POST
+    path: /api/v1/webhooks/stripe
+    headers:
+      stripe-signature: required
+    description: Process Stripe webhook events

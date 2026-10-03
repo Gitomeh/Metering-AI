@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UsageType {
+  API_CALL
+  AI_TOKENS
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  TRIALING
+  UNPAID
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+}
+
+model Tenant {
+  id            String         @id @default(cuid())
+  name          String
+  email         String         @unique
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  subscriptions Subscription[]
+  usageEvents   UsageEvent[]
+
+  @@index([email])
+}
+
+model Plan {
+  id                String              @id @default(cuid())
+  name              String              @unique
+  apiCallLimit      Int
+  aiTokenLimit      Int
+  monthlyPriceCents Int
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  subscriptions     Subscription[]
+
+  @@index([name])
+}
+
+model Subscription {
+  id                  String            @id @default(cuid())
+  tenantId            String
+  planId              String
+  stripeCustomerId    String?
+  stripeSubscriptionId String?
+  status              SubscriptionStatus
+  currentPeriodStart  DateTime?
+  currentPeriodEnd    DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  tenant              Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan                Plan              @relation(fields: [planId], references: [id])
+
+  @@unique([tenantId, stripeSubscriptionId])
+  @@index([tenantId])
+  @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
+}
+
+model UsageEvent {
+  id              String    @id @default(cuid())
+  tenantId        String
+  usageType       UsageType
+  quantity        Int
+  idempotencyKey  String
+  timestamp       DateTime  @default(now())
+  metadata        Json?
+  costCents       Int?
+
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId])
+  @@index([tenantId, timestamp])
+  @@index([tenantId, usageType, timestamp])
+  @@index([idempotencyKey])
+}
+
+model StripeEvent {
+  id           String   @id @default(cuid())
+  stripeEventId String  @unique
+  eventType    String
+  processedAt  DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@index([stripeEventId])
+  @@index([eventType])
+}
